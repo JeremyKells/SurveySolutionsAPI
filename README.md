@@ -24,6 +24,6 @@ Hard coded config has been swapped out, for a config read in from json file `.\S
 
 `GetExport.exe` expects one command line argument, which must match one of the keys of the object under `"surveys"` in the config file.  i.e., with the config above, either `TA` or `SLSS` 
 
-The downloaded zipfile is output to stdout, which can be piped into another utility to process the data, or redirected to save as a file:
+The downloaded zipfile is output to stdout, which can be piped into another utility (e.g. [ss-to-kemis](https://github.com/JeremyKells/ss-to-kemis)), or redirected to save as a file:
 
 `GetExport.exe TA > TeachersAssessments.zip`
