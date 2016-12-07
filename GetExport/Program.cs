@@ -39,8 +39,7 @@ namespace DataExport
                 return;
             }
             string survey = args[0];
-            string path = Path.Combine(Environment.CurrentDirectory, "SurveySolutions.config");
-            string json = File.ReadAllText(Path.Combine(Environment.CurrentDirectory, "SurveySolutions.config"), Encoding.UTF8);
+            string json = File.ReadAllText(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "SurveySolutions.config"), Encoding.UTF8);
 
             dynamic jsonConfig = JObject.Parse(json);
             Config config = new Config();
