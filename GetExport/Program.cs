@@ -18,6 +18,8 @@ namespace DataExport
         public string template { get; set; }
         public string version { get; set; }
         public string downloadTo { get; set; }
+        public int maxWaitTime { get; set; }
+        
     }
 
     static class Program
@@ -42,17 +44,17 @@ namespace DataExport
             string json = File.ReadAllText(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "SurveySolutions.config"), Encoding.UTF8);
 
             dynamic jsonConfig = JObject.Parse(json);
-            Config config = new Config();
+            Config config      = new Config();
             try
             {
+                config.template    = jsonConfig.surveys[survey].template;
+                config.version     = jsonConfig.surveys[survey].version;
 
-                config.template = jsonConfig.surveys[survey].template;
-                config.version = jsonConfig.surveys[survey].version;
-
-                config.server = jsonConfig.server;
-                config.apiLogin = jsonConfig.apiLogin;
+                config.server      = jsonConfig.server;
+                config.apiLogin    = jsonConfig.apiLogin;
                 config.apiPassword = jsonConfig.apiPassword;
-                config.fmt = jsonConfig.fmt;
+                config.fmt         = jsonConfig.fmt;
+                config.maxWaitTime = jsonConfig.maxWaitTime;
             }
             catch (Exception)
             {
@@ -69,15 +71,23 @@ namespace DataExport
             var qid = String.Format("{0}${1}", config.template, config.version);
             var baseUrl = SurveySolutionsApi.GetBaseUrl(config.server, config.fmt, qid);
 
-            var result = SurveySolutionsApi.GetDetails(baseUrl, config.apiLogin, config.apiPassword);
-            //Console.WriteLine(result);
+            dynamic result = JObject.Parse(@"{ExportStatus: 'Not Finished'}");
 
             SurveySolutionsApi.RefreshExport(baseUrl, config.apiLogin, config.apiPassword);
-            Thread.Sleep(2000); // or wait for the status to be ready
+            Thread.Sleep(2000);
 
-            result = SurveySolutionsApi.GetDetails(baseUrl, config.apiLogin, config.apiPassword);
-            //Console.WriteLine(result);
-
+            int sleepCount = 0;
+            while (result.ExportStatus != "Finished")
+            {
+                sleepCount++;
+                if (sleepCount > config.maxWaitTime)
+                {
+                    Console.WriteLine("Server is not finishing within maxWaitTime");
+                    return;
+                }
+                Thread.Sleep(1000);
+                result = JObject.Parse(SurveySolutionsApi.GetDetails(baseUrl, config.apiLogin, config.apiPassword));
+            }
             SurveySolutionsApi.DownloadFile(baseUrl, config.apiLogin, config.apiPassword);
         }
     }
