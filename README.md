@@ -6,10 +6,10 @@ http://support.mysurvey.solutions/customer/en/portal/articles/2574862-api-for-da
 Hard coded config has been swapped out, for a config read in from json file `.\SurveySolutions.config`:
 
     {
-        "server": "https://XXXXXXXXXXXXXXXXXXXXXXXXXXX",
-        "apiLogin": "XXXXXXXXXXXXXXXXXXXXXXXXXXX",
-        "apiPassword": "XXXXXXXXXXXXXXXXXXXXXXXXXXX",
-        "fmt": "tabular",
+        "server":       "https://XXXXXXXXXXXXXXXXXXXXXXXXXXX",
+        "apiLogin":     "XXXXXXXXXXXXXXXXXXXXXXXXXXX",
+        "apiPassword":  "XXXXXXXXXXXXXXXXXXXXXXXXXXX",
+        "fmt":          "tabular",
         "surveys": {
           "TA": {
               "template": "d5054668-eb70-4463-9c35-df063f47069f",
