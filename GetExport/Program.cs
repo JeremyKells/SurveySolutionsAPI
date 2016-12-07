@@ -1,4 +1,6 @@
-﻿using System;
+﻿
+using Newtonsoft.Json.Linq;
+using System;
 using System.IO;
 using System.Net.Http;
 using System.Net.Http.Headers;
@@ -7,40 +9,77 @@ using System.Threading;
 
 namespace DataExport
 {
+    public class Config
+    {
+        public string server { get; set; }
+        public string apiLogin { get; set; }
+        public string apiPassword { get; set; }
+        public string fmt { get; set; }
+        public string template { get; set; }
+        public string version { get; set; }
+        public string downloadTo { get; set; }
+    }
+
     static class Program
     {
         /// <summary>
         /// The main entry point for the application.
         /// </summary>
         [STAThread]
-        static void Main()
+        static void Main(string[] args)
         {
-            ApiDemo();
+
+            if (args.Length != 1)
+            {
+                System.Console.WriteLine("GetExport - Utility for downloading data from SurveySolutions");
+                System.Console.WriteLine("Requires a SurveySolutions config file (json) in the current directory");
+                System.Console.WriteLine("And a single command line parameter - the survey name - that must be in the config file under 'surveys'");
+                System.Console.WriteLine("Output is zipfile piped to stdout - use redirection to save as file.");
+                System.Console.WriteLine("e.g.      GetExport TA > TeachersAssessments.zip");
+                return;
+            }
+            string survey = args[0];
+            string path = Path.Combine(Environment.CurrentDirectory, "SurveySolutions.config");
+            string json = File.ReadAllText(Path.Combine(Environment.CurrentDirectory, "SurveySolutions.config"), Encoding.UTF8);
+
+            dynamic jsonConfig = JObject.Parse(json);
+            Config config = new Config();
+            try
+            {
+
+                config.template = jsonConfig.surveys[survey].template;
+                config.version = jsonConfig.surveys[survey].version;
+
+                config.server = jsonConfig.server;
+                config.apiLogin = jsonConfig.apiLogin;
+                config.apiPassword = jsonConfig.apiPassword;
+                config.fmt = jsonConfig.fmt;
+            }
+            catch (Exception)
+            {
+                Console.WriteLine("Invalid Survey Name or Config File");
+                return;
+            }
+
+            ApiDemo(config);
         }
 
-        private static void ApiDemo()
+        private static void ApiDemo(Config config)
         {
-            //---------------------------------------------------------------------
-            var server = "https://demo.mysurvey.solutions/api/v1/export/";   // substitute your server address here
-            var apiLogin = "Expapi";                                         // substitute your API login here
-            var apiPassword = "ExpApi2000";                                  // substitute your API password here
-            var fmt = "stata"; // tabular spss stata binary paradata         // substitute your desirable file format here
-            var template = "74e2d30854914e24af6beae9be64130c";               // substitute your questionnaire id here
-            var version = "1";                                               // substitute your questionnaire version here
-            //---------------------------------------------------------------------
-            var qid = String.Format("{0}${1}", template, version);
-            var baseUrl = SurveySolutionsApi.GetBaseUrl(server, fmt, qid);
-            
-            var result = SurveySolutionsApi.GetDetails(baseUrl, apiLogin, apiPassword);
-            Console.WriteLine(result);
 
-            SurveySolutionsApi.RefreshExport(baseUrl, apiLogin, apiPassword);
+            var qid = String.Format("{0}${1}", config.template, config.version);
+            var baseUrl = SurveySolutionsApi.GetBaseUrl(config.server, config.fmt, qid);
+
+            var result = SurveySolutionsApi.GetDetails(baseUrl, config.apiLogin, config.apiPassword);
+            //Console.WriteLine(result);
+
+            SurveySolutionsApi.RefreshExport(baseUrl, config.apiLogin, config.apiPassword);
             Thread.Sleep(2000); // or wait for the status to be ready
 
-            result = SurveySolutionsApi.GetDetails(baseUrl, apiLogin, apiPassword);
-            Console.WriteLine(result);
+            result = SurveySolutionsApi.GetDetails(baseUrl, config.apiLogin, config.apiPassword);
+            //Console.WriteLine(result);
 
-            SurveySolutionsApi.DownloadFile(@"C:\temp\mydownload.zip", baseUrl, apiLogin, apiPassword);
+            SurveySolutionsApi.DownloadFile(baseUrl, config.apiLogin, config.apiPassword);
         }
     }
 
@@ -103,17 +142,19 @@ namespace DataExport
             }
         }
 
-        public static void DownloadFile(string filename, string url, string apiLogin, string apiPassword)
+        public static void DownloadFile(string url, string apiLogin, string apiPassword)
         {
             using (var httpClient = GetClient(apiLogin, apiPassword))
             {
                 using (var response = httpClient.GetByteArrayAsync(url))
                 {
                     response.Wait();
-                    File.WriteAllBytes(filename, response.Result);
+                    using (Stream myOutStream = Console.OpenStandardOutput())
+                    {
+                        myOutStream.Write(response.Result, 0, response.Result.Length);
+                    }
                 }
             }
         }
-
     }
 }
